@@ -1,3 +1,5 @@
+import createElem from "./createElem.mjs";
+
 const random = (count) => {
   return {
     tag: "div",
@@ -20,7 +22,7 @@ const random = (count) => {
   };
 };
 
-const random1 = (count) => {
+const random1 = (count = 0) => {
   return {
     tag: "div",
     props: {
@@ -30,10 +32,18 @@ const random1 = (count) => {
         props: {
           className: `button-blue`,
           children: {
-            tag: "button",
-            attrs: "button",
+            tag: "h1",
+            attrs: "heading-1",
             props: {
-              children: `${count}`,
+              className: `${count}`,
+              children: {
+                tag: "img",
+                attrs:
+                  "https://media.giphy.com/media/QCwrk1jxSWzz4grp0x/giphy.gif",
+                props: {
+                  children: "OK!",
+                },
+              },
             },
           },
         },
@@ -42,61 +52,36 @@ const random1 = (count) => {
   };
 };
 
-const render = (obj) => {
-  const { tag, attrs, props } = obj;
+let count = 0;
 
-  if (!props || !tag) return obj;
+const oldNode = createElem(random1(0));
 
-  const $elem = document.createElement(tag);
+const $root = document.getElementById("app").appendChild(oldNode);
 
-  if (attrs) {
-    if (tag === "button") {
-      $elem.setAttribute("type", attrs);
-    } else if (tag === "img") {
-      $elem.setAttribute("src", attrs);
-    } else {
-      $elem.setAttribute("id", attrs);
-    }
-  }
+const diff = (vOldNode, vNewNode) => {
+  if (vOldNode === vNewNode) return null;
+  let oldChild = vOldNode.childNodes;
+  let newChild = vNewNode.childNodes;
 
-  for (const [key, value] of Object.entries(props)) {
-    if (key == "className") {
-      value.split(" ").forEach((word) => $elem.classList.add(word));
-    } else if (key == "children") {
-      const $children = render(value);
+  for (const oNode of oldChild) {
+    for (const nNode of newChild) {
+      const [oldNode, newNode] = diff(oNode, nNode);
 
-      if (typeof $children === "string") {
-        $elem.innerText = $children;
+      if (oldNode.isEqualNode(newNode)) {
+        return [oldNode.parentNode, newNode.parentNode];
       } else {
-        $elem.appendChild($children);
+        oldNode.replaceChild(newNode.firstChild, oldNode.firstChild);
+        vOldNode = vNewNode;
+        return;
       }
     }
   }
 
-  return $elem;
+  return [vOldNode, vNewNode];
 };
-
-let count = 0;
-
-const diff = (vOldNode, vNewNode) => {
-  const { tag: oldTag, attrs: oldAttrs, props: oldProps } = vOldNode;
-  const { tag: newTag, attrs: newAttrs, props: newProps } = vNewNode;
-
-  if (oldTag !== newTag) return render(vNewNode);
-  if (newAttrs && oldAttrs && newAttrs !== oldAttrs) return render(vNewNode);
-
-  for (const key in oldProps) {
-    return render(diff(oldProps[key], newProps[key]));
-  }
-
-  return;
-};
-
-const vApp = render(random());
 
 setInterval(() => {
   count++;
-  const newVDom = random1(count);
-  const patch = diff(vApp, newVDom);
-  document.getElementById("app").replaceChildren(patch);
-}, 1000);
+  const newNode = createElem(random1(count));
+  diff(oldNode, newNode);
+}, 2000);
